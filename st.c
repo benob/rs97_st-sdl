@@ -21,9 +21,12 @@
 #include <time.h>
 #include <unistd.h>
 
-#include <SDL.h>
-#include <SDL_thread.h>
-#include <SDL_ttf.h>
+#include <SDL/SDL.h>
+#include <SDL/SDL_thread.h>
+//#include <SDL/SDL_ttf.h>
+
+#include "font.h"
+#include "keyboard.h"
 
 #define Glyph Glyph_
 #define Font Font_
@@ -246,10 +249,12 @@ static void xzoom(const Arg *);
 /* Config.h for applying patches and the configuration. */
 #include "config.h"
 
+SDL_Surface* screen;
+
 /* Drawing Context */
 typedef struct {
 	SDL_Color colors[LEN(colormap) < 256 ? 256 : LEN(colormap)];
-	TTF_Font *font, *ifont, *bfont, *ibfont;
+	//TTF_Font *font, *ifont, *bfont, *ibfont;
 } DC;
 
 static void die(const char *, ...);
@@ -419,10 +424,30 @@ xcalloc(size_t nmemb, size_t size) {
 
 void
 xflip(void) {
-	if(SDL_Flip(xw.win)) {
+    //printf("flip\n");
+    SDL_Surface* buffer = SDL_CreateRGBSurface(SDL_SWSURFACE, xw.w, xw.h, 16, screen->format->Rmask, screen->format->Gmask, screen->format->Bmask, screen->format->Amask);
+    SDL_BlitSurface(xw.win, NULL, buffer, NULL);
+    draw_keyboard(buffer);
+
+    SDL_LockSurface(buffer);
+    SDL_LockSurface(screen);
+    for(int j = 0; j < buffer->h; j++) {
+        memcpy(screen->pixels + j * 2 * screen->pitch, buffer->pixels + j * buffer->pitch, buffer->w * 2);
+        memcpy(screen->pixels + (j * 2 + 1) * screen->pitch, buffer->pixels + j * buffer->pitch, buffer->w * 2);
+        /*for(int i = 0; i < buffer->w; i++) {
+            SDL_Rect rect = {i * 4, j * 4, 4, 4};
+            SDL_FillRect(screen, &rect, ((unsigned short*)buffer->pixels)[j * (buffer->pitch >> 1) + i]);
+        }*/
+    }
+    SDL_UnlockSurface(buffer);
+    SDL_UnlockSurface(screen);
+
+	if(SDL_Flip(screen)) {
+	//if(SDL_Flip(xw.win)) {
 		fputs("FLIP ERROR\n", stderr);
 		exit(EXIT_FAILURE);
 	}
+    SDL_FreeSurface(buffer);
 }
 
 int
@@ -2212,20 +2237,26 @@ sdlloadfonts(char *fontstr, int fontsize) {
 		bfontstr++;
 	}
 
-	if(dc.font) TTF_CloseFont(dc.font);
+	/*if(dc.font) TTF_CloseFont(dc.font);
 	dc.font = TTF_OpenFont(fontstr, fontsize);
-	TTF_SizeUTF8(dc.font, "O", &xw.cw, &xw.ch);
+    fprintf(stderr, "%s\n", fontstr);*/
+	//TTF_SizeUTF8(dc.font, "O", &xw.cw, &xw.ch);
+    xw.cw = 6;
+    xw.ch = 8;
 
-	if(dc.ifont) TTF_CloseFont(dc.ifont);
+	/*if(dc.ifont) TTF_CloseFont(dc.ifont);
 	dc.ifont = TTF_OpenFont(fontstr, fontsize);
+    fprintf(stderr, "%s\n", fontstr);
 	TTF_SetFontStyle(dc.ifont, TTF_STYLE_ITALIC);
 
 	if(dc.bfont) TTF_CloseFont(dc.bfont);
 	dc.bfont = TTF_OpenFont(bfontstr, fontsize);
+    fprintf(stderr, "%s\n", bfontstr);
 
 	if(dc.ibfont) TTF_CloseFont(dc.ibfont);
 	dc.ibfont = TTF_OpenFont(bfontstr, fontsize);
-	TTF_SetFontStyle(dc.ibfont, TTF_STYLE_ITALIC);
+    fprintf(stderr, "%s\n", bfontstr);
+	TTF_SetFontStyle(dc.ibfont, TTF_STYLE_ITALIC);*/
 }
 
 void
@@ -2240,7 +2271,7 @@ void
 sdlinit(void) {
 	const SDL_VideoInfo *vi;
 
-	dc.font = dc.ifont = dc.bfont = dc.ibfont = NULL;
+	//dc.font = dc.ifont = dc.bfont = dc.ibfont = NULL;
 
 	if(SDL_Init(SDL_INIT_VIDEO) == -1) {
 		fprintf(stderr,"Unable to initialize SDL: %s\n", SDL_GetError());
@@ -2249,14 +2280,14 @@ sdlinit(void) {
 
 	SDL_EnableUNICODE(1);
 
-	if(TTF_Init() == -1) {
+	/*if(TTF_Init() == -1) {
 		printf("TTF_Init: %s\n", TTF_GetError());
 		exit(EXIT_FAILURE);
 	}
 
 	if(atexit(TTF_Quit)) {
 		fprintf(stderr,"Unable to register TTF_Quit atexit\n");
-	}
+	}*/
 
 	if(atexit(SDL_Quit)) {
 		fprintf(stderr,"Unable to register SDL_Quit atexit\n");
@@ -2288,22 +2319,29 @@ sdlinit(void) {
 		xw.fy = 0;
 	}
 
-	if(!(xw.win = SDL_SetVideoMode(xw.w, xw.h, 16, SDL_HWSURFACE | SDL_DOUBLEBUF | SDL_RESIZABLE))) {
+    //xw.w = initial_width;
+    //xw.h = initial_height;
+
+	if(!(screen = SDL_SetVideoMode(320, 480, 16, SDL_SWSURFACE | SDL_DOUBLEBUF))) {
 		fprintf(stderr,"Unable to set video mode: %s\n", SDL_GetError());
 		exit(EXIT_FAILURE);
 	}
+    xw.win = SDL_CreateRGBSurface(SDL_SWSURFACE, xw.w, xw.h, 16, screen->format->Rmask, screen->format->Gmask, screen->format->Bmask, screen->format->Amask);
 
 	sdlresettitle();
 	expose(NULL);
 	vi = SDL_GetVideoInfo();
-	cresize(vi->current_w, vi->current_h);
+	//cresize(vi->current_w, vi->current_h);
+
+    //SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL);
+    SDL_EnableKeyRepeat(200, 20);
 }
 
 void
 xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 	int winx = borderpx + x * xw.cw, winy = borderpx + y * xw.ch,
 	    width = charlen * xw.cw;
-	TTF_Font *font = dc.font;
+	//TTF_Font *font = dc.font;
 	SDL_Color *fg = &dc.colors[base.fg], *bg = &dc.colors[base.bg],
 	          *temp, revfg, revbg;
 
@@ -2326,13 +2364,13 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 		 *	196 - 231 – highest 256 color cube
 		 *	252 - 255 – brightest colors in greyscale
 		 */
-		font = dc.bfont;
+		//font = dc.bfont;
 	}
 
-	if(base.mode & ATTR_ITALIC)
+	/*if(base.mode & ATTR_ITALIC)
 		font = dc.ifont;
 	if((base.mode & ATTR_ITALIC) && (base.mode & ATTR_BOLD))
-		font = dc.ibfont;
+		font = dc.ibfont;*/
 
 	if(IS_SET(MODE_REVERSE)) {
 		if(fg == &dc.colors[defaultfg]) {
@@ -2376,16 +2414,30 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 		SDL_Rect r = {winx, winy, width, xw.ch};
 
 		SDL_FillRect(xw.win, &r, SDL_MapRGB(xw.win->format, bg->r, bg->g, bg->b));
+
+/*#ifdef USE_ANTIALIASING
+		if(!(text_surface=TTF_RenderUTF8_Shaded(font,s,*fg, *bg))) {
+#else
 		if(!(text_surface=TTF_RenderUTF8_Solid(font,s,*fg))) {
+#endif
 			printf("Could not TTF_RenderUTF8_Solid: %s\n", TTF_GetError());
 			exit(EXIT_FAILURE);
 		} else {
 			SDL_BlitSurface(text_surface,NULL,xw.win,&r);
 			SDL_FreeSurface(text_surface);
-		}
+		}*/
+        int xs = r.x;
+        draw_string(xw.win, s, xs, r.y, SDL_MapRGB(xw.win->format, fg->r, fg->g, fg->b));
+
+        /*while(*s) {
+            draw_char(xw.win, *s, xs, r.y, SDL_MapRGB(xw.win->format, fg->r, fg->g, fg->b));
+            xs += 6;
+            s++;
+        }*/
 
 		if(base.mode & ATTR_UNDERLINE) {
-			r.y += TTF_FontAscent(font) + 1;
+			//r.y += TTF_FontAscent(font) + 1;
+            r.y += xw.ch;
 			r.h = 1;
 			SDL_FillRect(xw.win, &r, SDL_MapRGB(xw.win->format, fg->r, fg->g, fg->b));
 		}
@@ -2629,6 +2681,7 @@ kpress(SDL_Event *ev) {
 void
 cresize(int width, int height)
 {
+    printf("%d %d\n", width, height);
 	int col, row;
 
 	if(width != 0)
@@ -2639,8 +2692,12 @@ cresize(int width, int height)
 	col = (xw.w - 2*borderpx) / xw.cw;
 	row = (xw.h - 2*borderpx) / xw.ch;
 
-	xw.win = SDL_SetVideoMode(xw.w, xw.h, 16, SDL_HWSURFACE |
-SDL_DOUBLEBUF | SDL_RESIZABLE);
+    printf("set videomode %dx%d\n", xw.w, xw.h);
+	if(!(screen = SDL_SetVideoMode(320, 480, 16, SDL_SWSURFACE | SDL_DOUBLEBUF))) {
+		fprintf(stderr,"Unable to set video mode: %s\n", SDL_GetError());
+		exit(EXIT_FAILURE);
+	}
+    xw.win = SDL_CreateRGBSurface(SDL_SWSURFACE, xw.w, xw.h, 16, screen->format->Rmask, screen->format->Gmask, screen->format->Bmask, screen->format->Amask);
 	tresize(col, row);
 	xresize(col, row);
 	ttyresize();
@@ -2712,90 +2769,104 @@ run(void) {
 		exit(EXIT_FAILURE);
 	}
 
-	while(SDL_WaitEvent(&ev)) {
-		if(ev.type == SDL_QUIT) break;
+    while(SDL_WaitEvent(&ev)) {
+        if(ev.type == SDL_QUIT) break;
 
-		if(handler[ev.type])
-			(handler[ev.type])(&ev);
+        if(ev.type == SDL_KEYDOWN || ev.type == SDL_KEYUP) {
+            if(handle_keyboard_event(&ev)) {
+                /*SDL_Event expose_event = {
+                    .type = SDL_VIDEOEXPOSE
+                };
+                SDL_PushEvent(&expose_event);*/
+            } else {
+                if(handler[ev.type])
+                    (handler[ev.type])(&ev);
+            }
+        } else {
+            if(handler[ev.type])
+                (handler[ev.type])(&ev);
+        }
 
-		switch(ev.type) {
-			case SDL_VIDEORESIZE:
-			case SDL_VIDEOEXPOSE:
-			case SDL_USEREVENT:
-				draw();
-		}
-	}
+        switch(ev.type) {
+            case SDL_VIDEORESIZE:
+            case SDL_VIDEOEXPOSE:
+            case SDL_USEREVENT:
+                draw();
+        }
+        xflip();
+    }
 
-	SDL_KillThread(thread);
+    SDL_KillThread(thread);
 }
 
 int
 main(int argc, char *argv[]) {
-	int i;
+    int i;
 
-	xw.fw = xw.fh = xw.fx = xw.fy = 0;
-	xw.isfixed = false;
+    xw.fw = xw.fh = xw.fx = xw.fy = 0;
+    xw.isfixed = false;
 
-	for(i = 1; i < argc; i++) {
-		switch(argv[i][0] != '-' || argv[i][2] ? -1 : argv[i][1]) {
-		case 'c':
-			if(++i < argc)
-				opt_class = argv[i];
-			break;
-		case 'e':
-			/* eat every remaining arguments */
-			if(++i < argc)
-				opt_cmd = &argv[i];
-			goto run;
-		case 'f':
-			if(++i < argc)
-				opt_font = argv[i];
-			break;
-// TODO
+    for(i = 1; i < argc; i++) {
+        switch(argv[i][0] != '-' || argv[i][2] ? -1 : argv[i][1]) {
+            case 'c':
+                if(++i < argc)
+                    opt_class = argv[i];
+                break;
+            case 'e':
+                /* eat every remaining arguments */
+                if(++i < argc)
+                    opt_cmd = &argv[i];
+                goto run;
+            case 'f':
+                if(++i < argc)
+                    opt_font = argv[i];
+                break;
+                // TODO
 #if 0
-		case 'g':
-			if(++i >= argc)
-				break;
+            case 'g':
+                if(++i >= argc)
+                    break;
 
-			bitm = XParseGeometry(argv[i], &xr, &yr, &wr, &hr);
-			if(bitm & XValue)
-				xw.fx = xr;
-			if(bitm & YValue)
-				xw.fy = yr;
-			if(bitm & WidthValue)
-				xw.fw = (int)wr;
-			if(bitm & HeightValue)
-				xw.fh = (int)hr;
-			if(bitm & XNegative && xw.fx == 0)
-				xw.fx = -1;
-			if(bitm & XNegative && xw.fy == 0)
-				xw.fy = -1;
+                bitm = XParseGeometry(argv[i], &xr, &yr, &wr, &hr);
+                if(bitm & XValue)
+                    xw.fx = xr;
+                if(bitm & YValue)
+                    xw.fy = yr;
+                if(bitm & WidthValue)
+                    xw.fw = (int)wr;
+                if(bitm & HeightValue)
+                    xw.fh = (int)hr;
+                if(bitm & XNegative && xw.fx == 0)
+                    xw.fx = -1;
+                if(bitm & XNegative && xw.fy == 0)
+                    xw.fy = -1;
 
-			if(xw.fh != 0 && xw.fw != 0)
-				xw.isfixed = True;
-			break;
+                if(xw.fh != 0 && xw.fw != 0)
+                    xw.isfixed = True;
+                break;
 #endif
-		case 'o':
-			if(++i < argc)
-				opt_io = argv[i];
-			break;
-		case 't':
-			if(++i < argc)
-				opt_title = argv[i];
-			break;
-		case 'v':
-		default:
-			die(USAGE);
-		}
-	}
+            case 'o':
+                if(++i < argc)
+                    opt_io = argv[i];
+                break;
+            case 't':
+                if(++i < argc)
+                    opt_title = argv[i];
+                break;
+            case 'v':
+            default:
+                die(USAGE);
+        }
+    }
 
 run:
-	setlocale(LC_CTYPE, "");
-	tnew(80, 24);
-	ttynew();
-	sdlinit(); /* Must have TTY before cresize */
-	selinit();
-	run();
-	return 0;
+    setlocale(LC_CTYPE, "");
+    tnew((initial_width - 2) / 6, (initial_height - 2) / 8);
+    ttynew();
+    sdlinit(); /* Must have TTY before cresize */
+    init_keyboard();
+    selinit();
+    run();
+    return 0;
 }
 

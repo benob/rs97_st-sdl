@@ -1,9 +1,9 @@
 # st - simple terminal
 # See LICENSE file for copyright and license details.
 
-include config.mk
+include config_rs97.mk
 
-SRC = st.c
+SRC = st.c keyboard.c font.c
 OBJ = ${SRC:.c=.o}
 
 all: options st

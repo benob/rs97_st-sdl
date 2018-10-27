@@ -8,13 +8,13 @@ PREFIX = /usr/local
 MANPREFIX = ${PREFIX}/share/man
 
 # includes and libs
-INCS = -I. -I/usr/include
-LIBS = -L/usr/lib -lc -lutil
+INCS = -I. 
+LIBS = -lc -lutil
 
 # flags
 CPPFLAGS = -DVERSION=\"${VERSION}\"
-CFLAGS += -g -std=c99 -pedantic -Wall ${INCS} ${CPPFLAGS} `sdl-config --cflags`
-LDFLAGS += -g ${LIBS} `sdl-config --libs` -lSDL_ttf
+CFLAGS += -g -Wall ${INCS} ${CPPFLAGS} -DRS97
+LDFLAGS += -g ${LIBS} -lSDL
 
 # compiler and linker
 CC ?= cc

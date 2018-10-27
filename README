@@ -2,6 +2,12 @@ st - simple terminal
 --------------------
 st is a simple virtual terminal emulator for X which sucks less.
 
+Modified to run on RS-97.
+=> onscreen keyboard (see keyboard.c for button bindings)
+=> line doubling to deal with the 320x480 resolution
+=> TTF fonts replaced by embedded pixel font (from TIC-80)
+
+
 
 Requirements
 ------------

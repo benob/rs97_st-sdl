@@ -1,9 +1,16 @@
 /* See LICENSE file for copyright and license details. */
 
 /* appearance */
-static char font[] = "./LiberationMono-Regular.ttf:./LiberationMono-Bold.ttf";
-static int fontsize = 12;
+#define USE_ANTIALIASING
+//static char font[] = "fonts/LiberationMono-Regular.ttf:fonts/LiberationMono-Bold.ttf";
+//static char font[] = "fonts/inconsolata-dz.ttf:fonts/inconsolata-dz.ttf";
+//static char font[] = "fonts/monaco.ttf:fonts/monaco.ttf";
+//static char font[] = "fonts/TerminusTTF-4.46.0.ttf:fonts/TerminusTTF-4.46.0.ttf";
+static char font[] = "fonts/FIXED_V0.TTF:fonts/FIXED_V0.TTF";
+static int fontsize = 8;
 static int borderpx = 2;
+static int initial_width = 320;
+static int initial_height = 240;
 static char shell[] = "/bin/sh";
 
 /* double-click timeout (in milliseconds) between clicks for selection */
@@ -13,7 +20,7 @@ static unsigned int tripleclicktimeout = 600;
 /* TERM value */
 static char termname[] = "st-256color";
 
-static unsigned int tabspaces = 8;
+static unsigned int tabspaces = 4;
 #define WORD_BREAK " "
 
 /* Terminal colors (16 first used in escape sequence) */
