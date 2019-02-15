@@ -425,6 +425,7 @@ xcalloc(size_t nmemb, size_t size) {
 void
 xflip(void) {
     //printf("flip\n");
+#ifdef RS97_SCREEN_480
     SDL_Surface* buffer = SDL_CreateRGBSurface(SDL_SWSURFACE, xw.w, xw.h, 16, screen->format->Rmask, screen->format->Gmask, screen->format->Bmask, screen->format->Amask);
     SDL_BlitSurface(xw.win, NULL, buffer, NULL);
     draw_keyboard(buffer);
@@ -441,13 +442,19 @@ xflip(void) {
     }
     SDL_UnlockSurface(buffer);
     SDL_UnlockSurface(screen);
+#else
+		SDL_BlitSurface(xw.win, NULL, screen, NULL);
+		draw_keyboard(screen);
+#endif
 
 	if(SDL_Flip(screen)) {
 	//if(SDL_Flip(xw.win)) {
 		fputs("FLIP ERROR\n", stderr);
 		exit(EXIT_FAILURE);
 	}
+#ifdef RS97_SCREEN_480
     SDL_FreeSurface(buffer);
+#endif
 }
 
 int
@@ -2322,7 +2329,11 @@ sdlinit(void) {
     //xw.w = initial_width;
     //xw.h = initial_height;
 
+#ifdef RS97_SCREEN_480
 	if(!(screen = SDL_SetVideoMode(320, 480, 16, SDL_SWSURFACE | SDL_DOUBLEBUF))) {
+#else
+	if(!(screen = SDL_SetVideoMode(320, 240, 16, SDL_SWSURFACE | SDL_DOUBLEBUF))) {
+#endif
 		fprintf(stderr,"Unable to set video mode: %s\n", SDL_GetError());
 		exit(EXIT_FAILURE);
 	}
@@ -2693,7 +2704,11 @@ cresize(int width, int height)
 	row = (xw.h - 2*borderpx) / xw.ch;
 
     printf("set videomode %dx%d\n", xw.w, xw.h);
+#ifdef RS97_SCREEN_480
 	if(!(screen = SDL_SetVideoMode(320, 480, 16, SDL_SWSURFACE | SDL_DOUBLEBUF))) {
+#else
+	if(!(screen = SDL_SetVideoMode(320, 240, 16, SDL_SWSURFACE | SDL_DOUBLEBUF))) {
+#endif
 		fprintf(stderr,"Unable to set video mode: %s\n", SDL_GetError());
 		exit(EXIT_FAILURE);
 	}
