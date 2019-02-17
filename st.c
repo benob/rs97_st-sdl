@@ -946,6 +946,8 @@ execsh(void) {
 		setenv("SHELL", pass->pw_shell, 0);
 		setenv("HOME", pass->pw_dir, 0);
 	}
+	chdir(getenv("HOME"));
+	setenv("PS1", "\\[\\033[32m\\]\\W\\[\\033[00m\\]\\$ ", 1);
 
 #if 0
 	snprintf(buf, sizeof(buf), "%lu", xw.win);
