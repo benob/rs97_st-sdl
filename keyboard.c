@@ -195,7 +195,25 @@ void simulate_key(int key, int state) {
     printf("%d\n", key);
 }
 
+int compute_visual_offset(int col, int row) {
+	int sum = 0;
+	for(int i = 0; i < col; i++) sum += 1 + strlen(syms[0][row][i]);
+	sum += (1 + strlen(syms[0][row][col])) / 2;
+	return sum;
+}
+
+int compute_new_col(int visual_offset, int old_row, int new_row) {
+	int new_sum = 0;
+	int new_col = 0;
+	while(new_col < row_length[new_row] - 1 && new_sum + (1 + strlen(syms[0][new_row][new_col])) / 2 < visual_offset) {
+		new_sum += 1 + strlen(syms[0][new_row][new_col]);
+		new_col++;
+	}
+	return new_col;
+}
+
 int handle_keyboard_event(SDL_Event* event) {
+	static int visual_offset = 0;
     if(event->key.type == SDL_KEYDOWN && !(event->key.keysym.mod & KMOD_SYNTHETIC) && event->key.keysym.sym == KEY_ACTIVATE) {
         active = ! active;
         return 1;
@@ -207,15 +225,19 @@ int handle_keyboard_event(SDL_Event* event) {
         if(event->key.keysym.sym == KEY_QUIT) {
             exit(0);
         } else if(event->key.keysym.sym == KEY_UP && selected_j > 0) {
-            selected_j--;
-            selected_i = selected_i * row_length[selected_j] / row_length[selected_j + 1];
+					selected_i = compute_new_col(visual_offset, selected_j, selected_j - 1);
+					selected_j--;
+          //selected_i = selected_i * row_length[selected_j] / row_length[selected_j + 1];
         } else if(event->key.keysym.sym == KEY_DOWN && selected_j < NUM_ROWS - 1) {
-            selected_j++;
-            selected_i = selected_i * row_length[selected_j] / row_length[selected_j - 1];
+					selected_i = compute_new_col(visual_offset, selected_j, selected_j + 1);
+          selected_j++;
+					//selected_i = selected_i * row_length[selected_j] / row_length[selected_j - 1];
         } else if(event->key.keysym.sym == KEY_LEFT && selected_i > 0) {
-            selected_i--;
+          selected_i--;
+					visual_offset = compute_visual_offset(selected_i, selected_j);
         } else if(event->key.keysym.sym == KEY_RIGHT && selected_i < row_length[selected_j] - 1) {
-            selected_i++;
+          selected_i++;
+					visual_offset = compute_visual_offset(selected_i, selected_j);
         } else if(event->key.keysym.sym == KEY_SHIFT) {
             shifted = 1;
             toggled[4][0] = 1;
