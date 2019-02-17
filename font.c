@@ -15,10 +15,16 @@ void draw_char(SDL_Surface* surface, unsigned char symbol, int x, int y, unsigne
 
 }
 
-void draw_string(SDL_Surface* surface, const char* text, int x, int y, unsigned short color) {
-    while(*text) {
-        draw_char(surface, *text, x, y, color);
-        x += 6;
-        text++;
-    }
+void draw_string(SDL_Surface* surface, const char* text, int orig_x, int orig_y, unsigned short color) {
+	int x = orig_x, y = orig_y;
+	while(*text) {
+		if(*text == '\n') {
+			x = orig_x;
+			y += 8;
+		} else {
+			draw_char(surface, *text, x, y, color);
+			x += 6;
+		}
+		text++;
+	}
 }

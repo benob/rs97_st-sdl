@@ -80,6 +80,7 @@ static int shifted = 0;
 static int location = 0;
 static int active = 1;
 static int mod_state = 0;
+static int show_help = 1;
 
 void init_keyboard() {
     for(int j = 0; j < NUM_ROWS; j++)
@@ -91,21 +92,37 @@ void init_keyboard() {
 
 }
 
+char* help = "SDL Terminal based on st-sdl, by Benob\n\n\n"
+"Keys for manipulating the keyboard:\n"
+"- directions: select key\n"
+"- A: press key\n"
+"- B: toggle key (useful for shift/ctrl...)\n"
+"- L: shift\n"
+"- R: backspace\n"
+"- Y: change keyboard location (top/bottom)\n"
+"- X: show / hide keyboard\n"
+"- SELECT: quit";
+
 void draw_keyboard(SDL_Surface* surface) {
-    if(!active) return;
-    unsigned short bg_color = SDL_MapRGB(surface->format, 64, 64, 64);
-    unsigned short key_color = SDL_MapRGB(surface->format, 128, 128, 128);
-    unsigned short text_color = SDL_MapRGB(surface->format, 0, 0, 0);
-    unsigned short sel_color = SDL_MapRGB(surface->format, 128, 255, 128);
-    unsigned short sel_toggled_color = SDL_MapRGB(surface->format, 255, 255, 128);
-    unsigned short toggled_color = SDL_MapRGB(surface->format, 192, 192, 0);
-    int total_length = -1;
-    for(int i = 0; i < NUM_KEYS && syms[0][0][i]; i++) {
-        total_length += (1 + strlen(syms[0][0][i])) * 6;
-    }
-    int center_x = (surface->w - total_length) / 2;
-    int x = center_x, y = surface->h - 8 * (NUM_ROWS + 1);
-    if(location == 1) y = 8;
+	unsigned short bg_color = SDL_MapRGB(surface->format, 64, 64, 64);
+	unsigned short key_color = SDL_MapRGB(surface->format, 128, 128, 128);
+	unsigned short text_color = SDL_MapRGB(surface->format, 0, 0, 0);
+	unsigned short sel_color = SDL_MapRGB(surface->format, 128, 255, 128);
+	unsigned short sel_toggled_color = SDL_MapRGB(surface->format, 255, 255, 128);
+	unsigned short toggled_color = SDL_MapRGB(surface->format, 192, 192, 0);
+	if(show_help) {
+    SDL_FillRect(surface, NULL, bg_color);
+		draw_string(surface, help, 40, 58, sel_color);
+		return;
+	}
+	if(!active) return;
+	int total_length = -1;
+	for(int i = 0; i < NUM_KEYS && syms[0][0][i]; i++) {
+		total_length += (1 + strlen(syms[0][0][i])) * 6;
+	}
+	int center_x = (surface->w - total_length) / 2;
+	int x = center_x, y = surface->h - 8 * (NUM_ROWS + 1);
+	if(location == 1) y = 8;
 
     SDL_Rect rect = {x - 4, y - 3, total_length + 3, NUM_ROWS * 8 + 3};
     SDL_FillRect(surface, &rect, bg_color);
@@ -213,7 +230,11 @@ int compute_new_col(int visual_offset, int old_row, int new_row) {
 }
 
 int handle_keyboard_event(SDL_Event* event) {
-	static int visual_offset = 0;
+		static int visual_offset = 0;
+		if(show_help) {
+			show_help = 0;
+			return 0;
+		}
     if(event->key.type == SDL_KEYDOWN && !(event->key.keysym.mod & KMOD_SYNTHETIC) && event->key.keysym.sym == KEY_ACTIVATE) {
         active = ! active;
         return 1;
