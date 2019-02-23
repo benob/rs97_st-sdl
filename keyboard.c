@@ -140,8 +140,8 @@ void draw_keyboard(SDL_Surface* surface) {
 		total_length += (1 + strlen(syms[0][0][i])) * 6;
 	}
 	int center_x = (surface->w - total_length) / 2;
-	int x = center_x, y = surface->h - 8 * (NUM_ROWS + 1);
-	if(location == 1) y = 8;
+	int x = center_x, y = surface->h - 8 * (NUM_ROWS) - 16;
+	if(location == 1) y = 16;
 
 	SDL_Rect rect = {x - 4, y - 3, total_length + 3, NUM_ROWS * 8 + 3};
 	SDL_FillRect(surface, &rect, bg_color);
@@ -259,10 +259,8 @@ int handle_keyboard_event(SDL_Event* event) {
 
 	if(event->key.type == SDL_KEYDOWN && event->key.state == SDL_PRESSED) {
 		if(show_help) {
-			show_help = 0;
-			return 0;
-		}
-		if(event->key.keysym.sym == KEY_QUIT) {
+			// do nothing
+		} else if(event->key.keysym.sym == KEY_QUIT) {
 			exit(0);
 		} else if(event->key.keysym.sym == KEY_HELP) {
 			show_help = 1;
@@ -305,7 +303,9 @@ int handle_keyboard_event(SDL_Event* event) {
 			}
 		}
 	} else if(event->key.type == SDL_KEYUP || event->key.state == SDL_RELEASED) {
-		if(event->key.keysym.sym == KEY_SHIFT) {
+		if(show_help) {
+			show_help = 0;
+		} else if(event->key.keysym.sym == KEY_SHIFT) {
 			shifted = 0;
 			toggled[4][0] = 0;
 			update_modstate(SDLK_LSHIFT, STATE_UP);
