@@ -4,7 +4,7 @@ int main(int argc, char** argv) {
 	SDL_Init(SDL_INIT_VIDEO);
 	printf("Testing SDL\n");
 
-	SDL_Surface* screen = SDL_SetVideoMode(320, 240, 16, SDL_HWSURFACE | SDL_DOUBLEBUF);
+	SDL_Surface* screen = SDL_SetVideoMode(320, 240, 16, SDL_HWSURFACE);
 
 	int quit = 0;
 	while( !quit ){
