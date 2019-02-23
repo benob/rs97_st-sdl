@@ -13,7 +13,7 @@ LIBS = -lc -lutil
 
 # flags
 CPPFLAGS = -DVERSION=\"${VERSION}\"
-CFLAGS += -g -Wall ${INCS} ${CPPFLAGS} -DRS97
+CFLAGS += -g -Wall ${INCS} ${CPPFLAGS} -DRS97 -fPIC
 LDFLAGS += -g ${LIBS} -lSDL
 
 # compiler and linker
