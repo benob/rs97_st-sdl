@@ -20,6 +20,7 @@
 #include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
+#include <libgen.h>
 
 #include <SDL/SDL.h>
 #include <SDL/SDL_thread.h>
@@ -27,6 +28,7 @@
 
 #include "font.h"
 #include "keyboard.h"
+#include "msg_queue.h"
 
 #define Glyph Glyph_
 #define Font Font_
@@ -250,6 +252,7 @@ static void xzoom(const Arg *);
 #include "config.h"
 
 SDL_Surface* screen;
+char preload_libname[PATH_MAX + 17];
 
 /* Drawing Context */
 typedef struct {
@@ -265,6 +268,7 @@ static void drawregion(int, int, int, int);
 static void execsh(void);
 static void sigchld(int);
 static void run(void);
+int ttythread(void *unused);
 
 static void csidump(void);
 static void csihandle(void);
@@ -424,6 +428,7 @@ xcalloc(size_t nmemb, size_t size) {
 
 void
 xflip(void) {
+	if(xw.win == NULL) return;
     //printf("flip\n");
 #ifdef RS97_SCREEN_480
     SDL_Surface* buffer = SDL_CreateRGBSurface(SDL_SWSURFACE, xw.w, xw.h, 16, screen->format->Rmask, screen->format->Gmask, screen->format->Bmask, screen->format->Amask);
@@ -947,6 +952,8 @@ execsh(void) {
 		setenv("HOME", pass->pw_dir, 0);
 	}
 	chdir(getenv("HOME"));
+
+	setenv("LD_PRELOAD", preload_libname, 1);
 	setenv("PS1", "\\[\\033[32m\\]\\W\\[\\033[00m\\]\\$ ", 1);
 
 #if 0
@@ -2210,6 +2217,7 @@ initcolormap(void) {
 
 void
 sdltermclear(int col1, int row1, int col2, int row2) {
+	if(xw.win == NULL) return;
 	SDL_Rect r = {
 		borderpx + col1 * xw.cw,
 		borderpx + row1 * xw.ch,
@@ -2225,6 +2233,7 @@ sdltermclear(int col1, int row1, int col2, int row2) {
  */
 void
 xclear(int x1, int y1, int x2, int y2) {
+	if(xw.win == NULL) return;
 	SDL_Rect r = { x1, y1, x2-x1, y2-y1 };
 	SDL_Color c = dc.colors[IS_SET(MODE_REVERSE) ? defaultfg : defaultbg];
 	SDL_FillRect(xw.win, &r, SDL_MapRGB(xw.win->format, c.r, c.g, c.b));
@@ -2232,19 +2241,19 @@ xclear(int x1, int y1, int x2, int y2) {
 
 void
 sdlloadfonts(char *fontstr, int fontsize) {
-	char *bfontstr;
+	//char *bfontstr;
 
 	usedfont = fontstr;
 	usedfontsize = fontsize;
 
 	/* XXX: Strongly assumes the original setting had a : in it! */
-	if((bfontstr = strchr(fontstr, ':'))) {
+	/*if((bfontstr = strchr(fontstr, ':'))) {
 		*bfontstr = '\0';
 		bfontstr++;
 	} else {
 		bfontstr = strchr(fontstr, '\0');
 		bfontstr++;
-	}
+	}*/
 
 	/*if(dc.font) TTF_CloseFont(dc.font);
 	dc.font = TTF_OpenFont(fontstr, fontsize);
@@ -2276,9 +2285,22 @@ xzoom(const Arg *arg)
 	draw();
 }
 
+SDL_Thread *thread = NULL;
+
+void sdlshutdown(void) {
+	if(SDL_WasInit(SDL_INIT_EVERYTHING) != 0) {
+		fprintf(stderr, "SDL shutdown\n");
+		if(thread) SDL_KillThread(thread);
+		if(xw.win) SDL_FreeSurface(xw.win);
+		xw.win = NULL;
+		SDL_Quit();
+	}
+}
+
 void
 sdlinit(void) {
 	const SDL_VideoInfo *vi;
+	fprintf(stderr, "SDL init\n");
 
 	//dc.font = dc.ifont = dc.bfont = dc.ibfont = NULL;
 
@@ -2297,10 +2319,6 @@ sdlinit(void) {
 	if(atexit(TTF_Quit)) {
 		fprintf(stderr,"Unable to register TTF_Quit atexit\n");
 	}*/
-
-	if(atexit(SDL_Quit)) {
-		fprintf(stderr,"Unable to register SDL_Quit atexit\n");
-	}
 
 	vi = SDL_GetVideoInfo();
 
@@ -2342,12 +2360,22 @@ sdlinit(void) {
     xw.win = SDL_CreateRGBSurface(SDL_SWSURFACE, xw.w, xw.h, 16, screen->format->Rmask, screen->format->Gmask, screen->format->Bmask, screen->format->Amask);
 
 	sdlresettitle();
+	//
+	// TODO: might need to use system threads
+	if(!(thread = SDL_CreateThread(ttythread, NULL))) {
+		fprintf(stderr, "Unable to create thread: %s\n", SDL_GetError());
+		exit(EXIT_FAILURE);
+	}
+
 	expose(NULL);
-	vi = SDL_GetVideoInfo();
+	//vi = SDL_GetVideoInfo();
 	//cresize(vi->current_w, vi->current_h);
 
     //SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL);
-    SDL_EnableKeyRepeat(200, 20);
+	SDL_EnableKeyRepeat(200, 20);
+
+	SDL_Event event = {.type = SDL_VIDEOEXPOSE };
+	SDL_PushEvent(&event);
 }
 
 void
@@ -2423,9 +2451,10 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 		xclear(winx, winy + xw.ch, winx + width, xw.h);
 
 	{
-		SDL_Surface *text_surface;
+		//SDL_Surface *text_surface;
 		SDL_Rect r = {winx, winy, width, xw.ch};
 
+	if(xw.win != NULL) 
 		SDL_FillRect(xw.win, &r, SDL_MapRGB(xw.win->format, bg->r, bg->g, bg->b));
 
 /*#ifdef USE_ANTIALIASING
@@ -2440,7 +2469,8 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 			SDL_FreeSurface(text_surface);
 		}*/
         int xs = r.x;
-        draw_string(xw.win, s, xs, r.y, SDL_MapRGB(xw.win->format, fg->r, fg->g, fg->b));
+				if(xw.win != NULL) 
+					draw_string(xw.win, s, xs, r.y, SDL_MapRGB(xw.win->format, fg->r, fg->g, fg->b));
 
         /*while(*s) {
             draw_char(xw.win, *s, xs, r.y, SDL_MapRGB(xw.win->format, fg->r, fg->g, fg->b));
@@ -2452,7 +2482,8 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 			//r.y += TTF_FontAscent(font) + 1;
             r.y += xw.ch;
 			r.h = 1;
-			SDL_FillRect(xw.win, &r, SDL_MapRGB(xw.win->format, fg->r, fg->g, fg->b));
+			if(xw.win != NULL) 
+				SDL_FillRect(xw.win, &r, SDL_MapRGB(xw.win->format, fg->r, fg->g, fg->b));
 		}
 	}
 }
@@ -2714,7 +2745,8 @@ cresize(int width, int height)
 		fprintf(stderr,"Unable to set video mode: %s\n", SDL_GetError());
 		exit(EXIT_FAILURE);
 	}
-    xw.win = SDL_CreateRGBSurface(SDL_SWSURFACE, xw.w, xw.h, 16, screen->format->Rmask, screen->format->Gmask, screen->format->Bmask, screen->format->Amask);
+	if(xw.win) SDL_FreeSurface(xw.win);
+	xw.win = SDL_CreateRGBSurface(SDL_SWSURFACE, xw.w, xw.h, 16, screen->format->Rmask, screen->format->Gmask, screen->format->Bmask, screen->format->Amask);
 	tresize(col, row);
 	xresize(col, row);
 	ttyresize();
@@ -2778,15 +2810,30 @@ int ttythread(void *unused) {
 
 void
 run(void) {
+	queue_t qid = queue_create();
 	SDL_Event ev;
-	SDL_Thread *thread;
-
-	if(!(thread = SDL_CreateThread(ttythread, NULL))) {
-		fprintf(stderr, "Unable to create thread: %s\n", SDL_GetError());
-		exit(EXIT_FAILURE);
-	}
 
     while(SDL_WaitEvent(&ev)) {
+
+			/* check for preload library wanting a sdl shutdown */
+			if(queue_peek(qid, MSG_CLIENT)) {
+				message_t message;
+				queue_read(qid, MSG_CLIENT, &message);
+				fprintf(stderr, "msg: %ld %ld\n", message.type, message.data);
+				if(message.data == MSG_REQUEST_SHUTDOWN) {
+					message.type = MSG_SERVER;
+					message.data = MSG_SHUTDOWN;
+					queue_send(qid, &message);
+					sdlshutdown();
+					while(queue_read(qid, MSG_CLIENT, &message)) {
+						if(message.data == MSG_REQUEST_INIT) {
+							sdlinit();
+							break;
+						}
+					}
+				}
+			}
+
         if(ev.type == SDL_QUIT) break;
 
         if(ev.type == SDL_KEYDOWN || ev.type == SDL_KEYUP) {
@@ -2875,6 +2922,14 @@ main(int argc, char *argv[]) {
                 die(USAGE);
         }
     }
+
+		if(atexit(sdlshutdown)) {
+			fprintf(stderr,"Unable to register SDL_Quit atexit\n");
+		}
+
+		char path[PATH_MAX];
+		realpath(dirname(argv[0]), path);
+		snprintf(preload_libname, PATH_MAX + 17, "%s/libst-preload.so", path);
 
 run:
     setlocale(LC_CTYPE, "");

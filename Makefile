@@ -3,10 +3,15 @@
 
 include config_rs97.mk
 
-SRC = st.c keyboard.c font.c
+SRC = st.c keyboard.c font.c msg_queue.c
 OBJ = ${SRC:.c=.o}
 
-all: options st
+all: options st libst-preload.so sdl_test
+
+libst-preload.so: st-preload.o msg_queue.o
+	${CC} -shared -o $@ $^
+
+sdl_test: sdl_test.o
 
 options:
 	@echo st build options:
