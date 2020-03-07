@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=Terminal
+Comment=SimpleTerminal for RetroFW
+Exec=env LD_LIBRARY_PATH=. ./st
+Icon=st
+Terminal=false
+Type=Application
+StartupNotify=true
+Categories=applications;
+X-OD-Manual=readme.retrofw.txt
+X-OD-Scaling=2

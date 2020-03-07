@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Terminal
+Comment=SimpleTerminal for OpenDingux
+Exec=env LD_LIBRARY_PATH=. ./st
+Icon=st
+Terminal=false
+Type=Application
+StartupNotify=true
+Categories=applications;
+X-OD-Manual=readme.gcw0.txt

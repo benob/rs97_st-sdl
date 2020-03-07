@@ -4,35 +4,53 @@
 #define NUM_ROWS 6
 #define NUM_KEYS 18
 
-//#ifdef RS97
-
+#ifndef KEY_UP
 #define KEY_UP SDLK_UP
-#define KEY_DOWN SDLK_DOWN
-#define KEY_LEFT SDLK_LEFT
-#define KEY_RIGHT SDLK_RIGHT
-#define KEY_ENTER SDLK_LCTRL // A
-#define KEY_TOGGLE SDLK_LALT // B
-#define KEY_BACKSPACE SDLK_BACKSPACE // R
-#define KEY_SHIFT SDLK_TAB // L
-#define KEY_LOCATION SDLK_LSHIFT // Y
-#define KEY_ACTIVATE SDLK_SPACE // X
-#define KEY_QUIT SDLK_ESCAPE // SELECT
-#define KEY_HELP SDLK_RETURN // START
+#endif
 
-/*#else
-
-#define KEY_UP SDLK_UP
+#ifndef KEY_DOWN
 #define KEY_DOWN SDLK_DOWN
+#endif
+
+#ifndef KEY_LEFT
 #define KEY_LEFT SDLK_LEFT
+#endif
+
+#ifndef KEY_RIGHT
 #define KEY_RIGHT SDLK_RIGHT
+#endif
+
+#ifndef KEY_ENTER
 #define KEY_ENTER SDLK_RETURN
-#define KEY_TOGGLE SDLK_SPACE
-#define KEY_BACKSPACE SDLK_b
-#define KEY_SHIFT SDLK_s
-#define KEY_LOCATION SDLK_l
-#define KEY_ACTIVATE SDLK_BACKQUOTE
+#endif
 
-#endif*/
+#ifndef KEY_TOGGLE
+#define KEY_TOGGLE SDLK_SPACE
+#endif
+
+#ifndef KEY_BACKSPACE
+#define KEY_BACKSPACE SDLK_b
+#endif
+
+#ifndef KEY_SHIFT
+#define KEY_SHIFT SDLK_s
+#endif
+
+#ifndef KEY_LOCATION
+#define KEY_LOCATION SDLK_l
+#endif
+
+#ifndef KEY_ACTIVATE
+#define KEY_ACTIVATE SDLK_BACKQUOTE
+#endif
+
+#ifndef KEY_QUIT
+#define KEY_QUIT SDLK_ESCAPE
+#endif
+
+#ifndef KEY_HELP
+#define KEY_HELP SDLK_F1
+#endif
 
 #define KMOD_SYNTHETIC (1 << 13)
 
@@ -93,7 +111,7 @@ void init_keyboard() {
 
 }
 
-char* help = 
+char* help =
 "How to use:\n"
 "  ARROWS: select key from keyboard\n"
 "  A: press key\n"
@@ -323,7 +341,7 @@ int main() {
 	while(1) {
 		SDL_Event event;
 		while( SDL_PollEvent( &event ) ) {
-			if( event.type == SDL_QUIT ) { 
+			if( event.type == SDL_QUIT ) {
 				return 0;
 			} else {
 				handle_keyboard_event(&event);
