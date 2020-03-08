@@ -23,33 +23,57 @@
 #ifndef KEY_ENTER
 #define KEY_ENTER SDLK_RETURN
 #endif
+#ifndef LABEL_KEY_ENTER
+#define LABEL_KEY_ENTER "Enter"
+#endif
 
 #ifndef KEY_TOGGLE
 #define KEY_TOGGLE SDLK_SPACE
+#endif
+#ifndef LABEL_KEY_TOGGLE
+#define LABEL_KEY_TOGGLE "Space"
 #endif
 
 #ifndef KEY_BACKSPACE
 #define KEY_BACKSPACE SDLK_b
 #endif
+#ifndef LABEL_KEY_BACKSPACE
+#define LABEL_KEY_BACKSPACE "b"
+#endif
 
 #ifndef KEY_SHIFT
 #define KEY_SHIFT SDLK_s
+#endif
+#ifndef LABEL_KEY_SHIFT
+#define LABEL_KEY_SHIFT "s"
 #endif
 
 #ifndef KEY_LOCATION
 #define KEY_LOCATION SDLK_l
 #endif
+#ifndef LABEL_KEY_LOCATION
+#define LABEL_KEY_LOCATION "l"
+#endif
 
 #ifndef KEY_ACTIVATE
 #define KEY_ACTIVATE SDLK_BACKQUOTE
+#endif
+#ifndef LABEL_KEY_ACTIVATE
+#define LABEL_KEY_ACTIVATE "`"
 #endif
 
 #ifndef KEY_QUIT
 #define KEY_QUIT SDLK_ESCAPE
 #endif
+#ifndef LABEL_KEY_QUIT
+#define LABEL_KEY_QUIT "Esc"
+#endif
 
 #ifndef KEY_HELP
 #define KEY_HELP SDLK_F1
+#endif
+#ifndef LABEL_KEY_HELP
+#define LABEL_KEY_HELP "F1"
 #endif
 
 #define KMOD_SYNTHETIC (1 << 13)
@@ -111,17 +135,17 @@ void init_keyboard() {
 
 }
 
-char* help =
+const char* help =
 "How to use:\n"
 "  ARROWS: select key from keyboard\n"
-"  A: press key\n"
-"  B: toggle key (useful for shift/ctrl...)\n"
-"  L: shift\n"
-"  R: backspace\n"
-"  Y: change keyboard location (top/bottom)\n"
-"  X: show / hide keyboard\n"
-"  SELECT: quit\n"
-"  START: show this help\n\n"
+"  " LABEL_KEY_ENTER ": press key\n"
+"  " LABEL_KEY_TOGGLE ": toggle key (useful for shift/ctrl...)\n"
+"  " LABEL_KEY_SHIFT ": shift\n"
+"  " LABEL_KEY_BACKSPACE ": backspace\n"
+"  " LABEL_KEY_LOCATION ": change keyboard location (top/bottom)\n"
+"  " LABEL_KEY_ACTIVATE ": show / hide keyboard\n"
+"  " LABEL_KEY_QUIT ": quit\n"
+"  " LABEL_KEY_HELP ": show this help\n\n"
 "Cheatcheet (tutorial at www.shellscript.sh):\n"
 "  TAB key         complete path\n"
 "  UP/DOWN keys    navigate history\n"
