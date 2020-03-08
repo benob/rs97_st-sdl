@@ -6,4 +6,6 @@ Controls:
 - R: is backspace
 - Y: change keyboard location (top/bottom)
 - X: show / hide keyboard
+- L2/R2: left/right
+- L3/R3: up/down
 - SELECT: quit

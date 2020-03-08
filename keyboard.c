@@ -145,6 +145,18 @@ const char* help =
 "  " LABEL_KEY_LOCATION ": change keyboard location (top/bottom)\n"
 "  " LABEL_KEY_ACTIVATE ": show / hide keyboard\n"
 "  " LABEL_KEY_QUIT ": quit\n"
+#ifdef KEY_ARROW_LEFT
+"  " LABEL_KEY_ARROW_LEFT ": left\n"
+#endif
+#ifdef KEY_ARROW_RIGHT
+"  " LABEL_KEY_ARROW_RIGHT ": right\n"
+#endif
+#ifdef KEY_ARROW_UP
+"  " LABEL_KEY_ARROW_UP ": up\n"
+#endif
+#ifdef KEY_ARROW_DOWN
+"  " LABEL_KEY_ARROW_DOWN ": down\n"
+#endif
 "  " LABEL_KEY_HELP ": show this help\n\n"
 "Cheatcheet (tutorial at www.shellscript.sh):\n"
 "  TAB key         complete path\n"
@@ -152,14 +164,9 @@ const char* help =
 "  pwd             print current directory\n"
 "  ls              list files (-l for file size)\n"
 "  cd <d>          change directory (.. = go up)\n"
-"  cp <f> <d>      copy files (dest can be dir)\n"
-"  mv <f> <d>      move files (dest can be dir)\n"
-"  rm <f>          remove files (use -rf for dir)\n"
 "  top             see running processes (q to quit)\n"
 "  more <f>        see content of text file\n"
 "  file <f>        see type of file\n"
-"  opkg install <f.ipk>  install package\n"
-"  opkg remove <f>       remove package\n"
 "  grep <pattern> <f>    find in files\n"
 ;
 
@@ -328,6 +335,22 @@ int handle_keyboard_event(SDL_Event* event) {
 			location = !location;
 		} else if(event->key.keysym.sym == KEY_BACKSPACE) {
 			simulate_key(SDLK_BACKSPACE, STATE_TYPED);
+#ifdef KEY_ARROW_UP
+		} else if(event->key.keysym.sym == KEY_ARROW_UP) {
+			simulate_key(SDLK_UP, STATE_TYPED);
+#endif
+#ifdef KEY_ARROW_DOWN
+		} else if(event->key.keysym.sym == KEY_ARROW_DOWN) {
+			simulate_key(SDLK_DOWN, STATE_TYPED);
+#endif
+#ifdef KEY_ARROW_LEFT
+		} else if(event->key.keysym.sym == KEY_ARROW_LEFT) {
+			simulate_key(SDLK_LEFT, STATE_TYPED);
+#endif
+#ifdef KEY_ARROW_RIGHT
+		} else if(event->key.keysym.sym == KEY_ARROW_RIGHT) {
+			simulate_key(SDLK_RIGHT, STATE_TYPED);
+#endif
 		} else if(event->key.keysym.sym == KEY_TOGGLE) {
 			toggled[selected_j][selected_i] = 1 - toggled[selected_j][selected_i];
 			if(toggled[selected_j][selected_i]) simulate_key(keys[shifted][selected_j][selected_i], STATE_DOWN);
