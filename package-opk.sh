@@ -32,6 +32,7 @@ main() {
   mksquashfs \
     "opkg/default.$ext.desktop" \
     "opkg/readme.$ext.txt" \
+    opkg/st.sh \
     st.png \
     "$BUILD_DIR/st" \
     "$BUILD_DIR/libst-preload.so" \

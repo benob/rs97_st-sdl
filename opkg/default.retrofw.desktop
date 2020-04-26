@@ -1,7 +1,7 @@
 [Desktop Entry]
 Name=Terminal
 Comment=SimpleTerminal for RetroFW
-Exec=env LD_LIBRARY_PATH=. ./st
+Exec=st.sh
 Icon=st
 Terminal=false
 Type=Application
