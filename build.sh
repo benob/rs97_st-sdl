@@ -22,25 +22,21 @@ fi
 declare -r TARGET="${1}"
 
 check_buildroot() {
-  if ! [[ -d $BUILDROOT ]]; then
-    echo "Please set the BUILDROOT environment variable"
+  if [[ -n ${TOOLCHAIN:-} ]] && [[ -d $TOOLCHAIN ]]; then
+    return
+  elif ! [[ -d $BUILDROOT ]]; then
+    echo "Please set the BUILDROOT or TOOLCHAIN environment variable"
     exit 1
   fi
+  TOOLCHAIN="${BUILDROOT}/output/host"
 }
 
 make_buildroot() {
+  if [[ -z ${BUILDROOT:-} ]]; then
+    return
+  fi
   cd "$BUILDROOT"
-  # Check dependencies manually as it's much faster than `make`.
-  local -a deps=()
-  if ! [[ -f output/staging/usr/include/SDL/SDL.h ]]; then
-    deps+=(sdl)
-  fi
-  if ! [[ -f output/host/usr/share/buildroot/toolchainfile.cmake ]]; then
-    deps+=(toolchain)
-  fi
-  if (( ${#deps[@]} )); then
-    make "${deps[@]}" BR2_JLEVEL=0
-  fi
+  make toolchain sdl BR2_JLEVEL=0
   cd -
 }
 
@@ -50,7 +46,7 @@ build() {
   cmake .. \
     -DCMAKE_BUILD_TYPE=Release \
     -DTARGET_PLATFORM="$TARGET" \
-    -DCMAKE_TOOLCHAIN_FILE="$BUILDROOT/output/host/usr/share/buildroot/toolchainfile.cmake"
+    -DCMAKE_TOOLCHAIN_FILE="${TOOLCHAIN}/usr/share/buildroot/toolchainfile.cmake"
   cmake --build . -j $(getconf _NPROCESSORS_ONLN)
   cd -
 }
