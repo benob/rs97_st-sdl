@@ -384,6 +384,63 @@ static char *opt_font = NULL;
 static char *usedfont = NULL;
 static int usedfontsize = 0;
 
+/* RetroFW/OpenDingux display handling code */
+#ifndef SCREEN_WIDTH
+#define SCREEN_WIDTH 320
+#endif
+
+#ifndef SCREEN_HEIGHT
+#define SCREEN_HEIGHT 240
+#endif
+
+#ifndef SCREEN_BPP
+#define SCREEN_BPP 16
+#endif
+
+#ifndef ENABLE_LINE_DOUBLING
+#define ENABLE_LINE_DOUBLING 0
+#endif
+
+#ifndef AUTOSCALE
+#define AUTOSCALE 0
+#endif
+
+static int screen_width = SCREEN_WIDTH;
+static int screen_height = SCREEN_HEIGHT;
+static int line_doubling_enabled = ENABLE_LINE_DOUBLING;
+
+static SDL_Surface *
+SetVideoMode(int width, int height, int bpp, uint32_t flags) {
+	fprintf(stderr, "Setting video mode %dx%d bpp=%u flags=0x%08X\n", width,
+		    height, bpp, flags);
+	fflush(stderr);
+	SDL_Surface *result = SDL_SetVideoMode(width, height, bpp, flags);
+	const SDL_VideoInfo *current = SDL_GetVideoInfo();
+	fprintf(stderr, "Video mode is now %dx%d bpp=%u flags=0x%08X\n",
+	       current->current_w, current->current_h, current->vfmt->BitsPerPixel,
+	       SDL_GetVideoSurface()->flags);
+	fflush(stderr);
+	return result;
+}
+
+static int SetBestVideoMode(void) {
+	const SDL_VideoInfo *best = SDL_GetVideoInfo();
+	fprintf(stderr, "Best video mode reported as: %dx%d bpp=%d hw_available=%u\n",
+	        best->current_w, best->current_h, best->vfmt->BitsPerPixel, best->hw_available);
+#if AUTOSCALE == 1
+	/* Detect non 320x240/480 screens. */
+	if (best->current_w != SCREEN_WIDTH) {
+		screen_width = best->current_w;
+		screen_height = best->current_h;
+		line_doubling_enabled = 0;
+	}
+#endif
+	screen = SetVideoMode(screen_width, screen_height * (1 + line_doubling_enabled), SCREEN_BPP, SDL_SWSURFACE);
+	if (screen == NULL)
+			fprintf(stderr, "Failed to set video mode: %s\n", SDL_GetError());
+	return screen != NULL;
+}
+
 ssize_t
 xwrite(int fd, char *s, size_t len) {
 	size_t aux = len;
@@ -428,38 +485,37 @@ xcalloc(size_t nmemb, size_t size) {
 
 void
 xflip(void) {
-	if(xw.win == NULL) return;
-    //printf("flip\n");
-#ifdef RS97_SCREEN_480
-    SDL_Surface* buffer = SDL_CreateRGBSurface(SDL_SWSURFACE, xw.w, xw.h, 16, screen->format->Rmask, screen->format->Gmask, screen->format->Bmask, screen->format->Amask);
-    SDL_BlitSurface(xw.win, NULL, buffer, NULL);
-    draw_keyboard(buffer);
+	if (xw.win == NULL) return;
+	// printf("flip\n");
+	SDL_Surface *buffer;
+	if(line_doubling_enabled) {
+		buffer = SDL_CreateRGBSurface(SDL_SWSURFACE, xw.w, xw.h, 16,
+		                              screen->format->Rmask, screen->format->Gmask,
+		                              screen->format->Bmask, screen->format->Amask);
+		SDL_BlitSurface(xw.win, NULL, buffer, NULL);
+		draw_keyboard(buffer);
 
-    SDL_LockSurface(buffer);
-    SDL_LockSurface(screen);
-    for(int j = 0; j < buffer->h; j++) {
-        memcpy(screen->pixels + j * 2 * screen->pitch, buffer->pixels + j * buffer->pitch, buffer->w * 2);
-        memcpy(screen->pixels + (j * 2 + 1) * screen->pitch, buffer->pixels + j * buffer->pitch, buffer->w * 2);
-        /*for(int i = 0; i < buffer->w; i++) {
-            SDL_Rect rect = {i * 4, j * 4, 4, 4};
-            SDL_FillRect(screen, &rect, ((unsigned short*)buffer->pixels)[j * (buffer->pitch >> 1) + i]);
-        }*/
-    }
-    SDL_UnlockSurface(buffer);
-    SDL_UnlockSurface(screen);
-#else
+		SDL_LockSurface(buffer);
+		SDL_LockSurface(screen);
+		for (int j = 0; j < buffer->h; j++) {
+			memcpy(screen->pixels + j * 2 * screen->pitch,
+			       buffer->pixels + j * buffer->pitch, buffer->w * 2);
+			memcpy(screen->pixels + (j * 2 + 1) * screen->pitch,
+			       buffer->pixels + j * buffer->pitch, buffer->w * 2);
+		}
+		SDL_UnlockSurface(buffer);
+		SDL_UnlockSurface(screen);
+	} else {
 		SDL_BlitSurface(xw.win, NULL, screen, NULL);
 		draw_keyboard(screen);
-#endif
+	}
 
-	if(SDL_Flip(screen)) {
-	//if(SDL_Flip(xw.win)) {
+	if (SDL_Flip(screen)) {
+	// if(SDL_Flip(xw.win)) {
 		fputs("FLIP ERROR\n", stderr);
 		exit(EXIT_FAILURE);
 	}
-#ifdef RS97_SCREEN_480
-    SDL_FreeSurface(buffer);
-#endif
+	if (line_doubling_enabled) SDL_FreeSurface(buffer);
 }
 
 int
@@ -2291,6 +2347,7 @@ void sdlshutdown(void) {
 	if(SDL_WasInit(SDL_INIT_EVERYTHING) != 0) {
 		fprintf(stderr, "SDL shutdown\n");
 		if(thread) SDL_KillThread(thread);
+		thread = NULL;
 		if(xw.win) SDL_FreeSurface(xw.win);
 		xw.win = NULL;
 		SDL_Quit();
@@ -2298,19 +2355,26 @@ void sdlshutdown(void) {
 }
 
 void
-sdlinit(void) {
-	const SDL_VideoInfo *vi;
+sdlinitvideo(void) {
 	fprintf(stderr, "SDL init\n");
 
 	//dc.font = dc.ifont = dc.bfont = dc.ibfont = NULL;
 
 	if(SDL_Init(SDL_INIT_VIDEO) == -1) {
-		fprintf(stderr,"Unable to initialize SDL: %s\n", SDL_GetError());
+		fprintf(stderr, "Unable to initialize SDL: %s\n", SDL_GetError());
 		exit(EXIT_FAILURE);
 	}
 
 	SDL_EnableUNICODE(1);
 
+	// Hide cursor before creating the output surface.
+	SDL_ShowCursor(SDL_DISABLE);
+
+	if (!SetBestVideoMode()) exit(EXIT_FAILURE);
+}
+
+void
+sdlinit(void) {
 	/*if(TTF_Init() == -1) {
 		printf("TTF_Init: %s\n", TTF_GetError());
 		exit(EXIT_FAILURE);
@@ -2319,8 +2383,6 @@ sdlinit(void) {
 	if(atexit(TTF_Quit)) {
 		fprintf(stderr,"Unable to register TTF_Quit atexit\n");
 	}*/
-
-	vi = SDL_GetVideoInfo();
 
 	/* font */
 	usedfont = (opt_font == NULL)? font : opt_font;
@@ -2332,9 +2394,9 @@ sdlinit(void) {
 	/* adjust fixed window geometry */
 	if(xw.isfixed) {
 		if(xw.fx < 0)
-			xw.fx = vi->current_w + xw.fx - xw.fw - 1;
+			xw.fx = screen_width + xw.fx - xw.fw - 1;
 		if(xw.fy < 0)
-			xw.fy = vi->current_h + xw.fy - xw.fh - 1;
+			xw.fy = screen_height + xw.fy - xw.fh - 1;
 
 		xw.h = xw.fh;
 		xw.w = xw.fw;
@@ -2342,21 +2404,11 @@ sdlinit(void) {
 		/* window - default size */
 		xw.h = 2*borderpx + term.row * xw.ch;
 		xw.w = 2*borderpx + term.col * xw.cw;
+		fprintf(stderr, "xw.w = %d xw.h = %d\n", xw.w, xw.h);
 		xw.fx = 0;
 		xw.fy = 0;
 	}
 
-    //xw.w = initial_width;
-    //xw.h = initial_height;
-
-#ifdef RS97_SCREEN_480
-	if(!(screen = SDL_SetVideoMode(320, 480, 16, SDL_SWSURFACE | SDL_DOUBLEBUF))) {
-#else
-	if(!(screen = SDL_SetVideoMode(320, 240, 16, SDL_HWSURFACE | SDL_DOUBLEBUF))) {
-#endif
-		fprintf(stderr,"Unable to set video mode: %s\n", SDL_GetError());
-		exit(EXIT_FAILURE);
-	}
     xw.win = SDL_CreateRGBSurface(SDL_SWSURFACE, xw.w, xw.h, 16, screen->format->Rmask, screen->format->Gmask, screen->format->Bmask, screen->format->Amask);
 
 	sdlresettitle();
@@ -2454,7 +2506,7 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 		//SDL_Surface *text_surface;
 		SDL_Rect r = {winx, winy, width, xw.ch};
 
-	if(xw.win != NULL) 
+	if(xw.win != NULL)
 		SDL_FillRect(xw.win, &r, SDL_MapRGB(xw.win->format, bg->r, bg->g, bg->b));
 
 /*#ifdef USE_ANTIALIASING
@@ -2469,7 +2521,7 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 			SDL_FreeSurface(text_surface);
 		}*/
         int xs = r.x;
-				if(xw.win != NULL) 
+				if(xw.win != NULL)
 					draw_string(xw.win, s, xs, r.y, SDL_MapRGB(xw.win->format, fg->r, fg->g, fg->b));
 
         /*while(*s) {
@@ -2482,7 +2534,7 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 			//r.y += TTF_FontAscent(font) + 1;
             r.y += xw.ch;
 			r.h = 1;
-			if(xw.win != NULL) 
+			if(xw.win != NULL)
 				SDL_FillRect(xw.win, &r, SDL_MapRGB(xw.win->format, fg->r, fg->g, fg->b));
 		}
 	}
@@ -2736,15 +2788,7 @@ cresize(int width, int height)
 	col = (xw.w - 2*borderpx) / xw.cw;
 	row = (xw.h - 2*borderpx) / xw.ch;
 
-    printf("set videomode %dx%d\n", xw.w, xw.h);
-#ifdef RS97_SCREEN_480
-	if(!(screen = SDL_SetVideoMode(320, 480, 16, SDL_SWSURFACE | SDL_DOUBLEBUF))) {
-#else
-	if(!(screen = SDL_SetVideoMode(320, 240, 16, SDL_HWSURFACE | SDL_DOUBLEBUF))) {
-#endif
-		fprintf(stderr,"Unable to set video mode: %s\n", SDL_GetError());
-		exit(EXIT_FAILURE);
-	}
+	if (!SetBestVideoMode()) exit(EXIT_FAILURE);
 	if(xw.win) SDL_FreeSurface(xw.win);
 	xw.win = SDL_CreateRGBSurface(SDL_SWSURFACE, xw.w, xw.h, 16, screen->format->Rmask, screen->format->Gmask, screen->format->Bmask, screen->format->Amask);
 	tresize(col, row);
@@ -2860,7 +2904,8 @@ run(void) {
         xflip();
     }
 
-    SDL_KillThread(thread);
+	SDL_KillThread(thread);
+	thread = NULL;
 }
 
 int
@@ -2933,7 +2978,8 @@ main(int argc, char *argv[]) {
 
 run:
     setlocale(LC_CTYPE, "");
-    tnew((initial_width - 2) / 6, (initial_height - 2) / 8);
+	sdlinitvideo();
+    tnew((screen_width - 2 * borderpx - 1) / 6 + 1, (screen_height - 2 * borderpx - 1) / 8 + 1);
     ttynew();
     sdlinit(); /* Must have TTY before cresize */
     init_keyboard();

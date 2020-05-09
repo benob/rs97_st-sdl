@@ -4,35 +4,77 @@
 #define NUM_ROWS 6
 #define NUM_KEYS 18
 
-//#ifdef RS97
-
+#ifndef KEY_UP
 #define KEY_UP SDLK_UP
-#define KEY_DOWN SDLK_DOWN
-#define KEY_LEFT SDLK_LEFT
-#define KEY_RIGHT SDLK_RIGHT
-#define KEY_ENTER SDLK_LCTRL // A
-#define KEY_TOGGLE SDLK_LALT // B
-#define KEY_BACKSPACE SDLK_BACKSPACE // R
-#define KEY_SHIFT SDLK_TAB // L
-#define KEY_LOCATION SDLK_LSHIFT // Y
-#define KEY_ACTIVATE SDLK_SPACE // X
-#define KEY_QUIT SDLK_ESCAPE // SELECT
-#define KEY_HELP SDLK_RETURN // START
+#endif
 
-/*#else
-
-#define KEY_UP SDLK_UP
+#ifndef KEY_DOWN
 #define KEY_DOWN SDLK_DOWN
+#endif
+
+#ifndef KEY_LEFT
 #define KEY_LEFT SDLK_LEFT
+#endif
+
+#ifndef KEY_RIGHT
 #define KEY_RIGHT SDLK_RIGHT
+#endif
+
+#ifndef KEY_ENTER
 #define KEY_ENTER SDLK_RETURN
-#define KEY_TOGGLE SDLK_SPACE
-#define KEY_BACKSPACE SDLK_b
-#define KEY_SHIFT SDLK_s
-#define KEY_LOCATION SDLK_l
-#define KEY_ACTIVATE SDLK_BACKQUOTE
+#endif
+#ifndef LABEL_KEY_ENTER
+#define LABEL_KEY_ENTER "Enter"
+#endif
 
-#endif*/
+#ifndef KEY_TOGGLE
+#define KEY_TOGGLE SDLK_SPACE
+#endif
+#ifndef LABEL_KEY_TOGGLE
+#define LABEL_KEY_TOGGLE "Space"
+#endif
+
+#ifndef KEY_BACKSPACE
+#define KEY_BACKSPACE SDLK_b
+#endif
+#ifndef LABEL_KEY_BACKSPACE
+#define LABEL_KEY_BACKSPACE "b"
+#endif
+
+#ifndef KEY_SHIFT
+#define KEY_SHIFT SDLK_s
+#endif
+#ifndef LABEL_KEY_SHIFT
+#define LABEL_KEY_SHIFT "s"
+#endif
+
+#ifndef KEY_LOCATION
+#define KEY_LOCATION SDLK_l
+#endif
+#ifndef LABEL_KEY_LOCATION
+#define LABEL_KEY_LOCATION "l"
+#endif
+
+#ifndef KEY_ACTIVATE
+#define KEY_ACTIVATE SDLK_BACKQUOTE
+#endif
+#ifndef LABEL_KEY_ACTIVATE
+#define LABEL_KEY_ACTIVATE "`"
+#endif
+
+#ifndef KEY_QUIT
+#define KEY_QUIT SDLK_ESCAPE
+#endif
+#ifndef LABEL_KEY_QUIT
+#define LABEL_KEY_QUIT "Esc"
+#endif
+
+#ifndef KEY_HELP
+#define KEY_HELP SDLK_F1
+#endif
+#ifndef LABEL_KEY_HELP
+#define LABEL_KEY_HELP "F1"
+#endif
 
 #define KMOD_SYNTHETIC (1 << 13)
 
@@ -93,31 +135,38 @@ void init_keyboard() {
 
 }
 
-char* help = 
+const char* help =
 "How to use:\n"
 "  ARROWS: select key from keyboard\n"
-"  A: press key\n"
-"  B: toggle key (useful for shift/ctrl...)\n"
-"  L: shift\n"
-"  R: backspace\n"
-"  Y: change keyboard location (top/bottom)\n"
-"  X: show / hide keyboard\n"
-"  SELECT: quit\n"
-"  START: show this help\n\n"
+"  " LABEL_KEY_ENTER ": press key\n"
+"  " LABEL_KEY_TOGGLE ": toggle key (useful for shift/ctrl...)\n"
+"  " LABEL_KEY_SHIFT ": shift\n"
+"  " LABEL_KEY_BACKSPACE ": backspace\n"
+"  " LABEL_KEY_LOCATION ": change keyboard location (top/bottom)\n"
+"  " LABEL_KEY_ACTIVATE ": show / hide keyboard\n"
+"  " LABEL_KEY_QUIT ": quit\n"
+#ifdef KEY_ARROW_LEFT
+"  " LABEL_KEY_ARROW_LEFT ": left\n"
+#endif
+#ifdef KEY_ARROW_RIGHT
+"  " LABEL_KEY_ARROW_RIGHT ": right\n"
+#endif
+#ifdef KEY_ARROW_UP
+"  " LABEL_KEY_ARROW_UP ": up\n"
+#endif
+#ifdef KEY_ARROW_DOWN
+"  " LABEL_KEY_ARROW_DOWN ": down\n"
+#endif
+"  " LABEL_KEY_HELP ": show this help\n\n"
 "Cheatcheet (tutorial at www.shellscript.sh):\n"
 "  TAB key         complete path\n"
 "  UP/DOWN keys    navigate history\n"
 "  pwd             print current directory\n"
 "  ls              list files (-l for file size)\n"
 "  cd <d>          change directory (.. = go up)\n"
-"  cp <f> <d>      copy files (dest can be dir)\n"
-"  mv <f> <d>      move files (dest can be dir)\n"
-"  rm <f>          remove files (use -rf for dir)\n"
 "  top             see running processes (q to quit)\n"
 "  more <f>        see content of text file\n"
 "  file <f>        see type of file\n"
-"  opkg install <f.ipk>  install package\n"
-"  opkg remove <f>       remove package\n"
 "  grep <pattern> <f>    find in files\n"
 ;
 
@@ -286,6 +335,22 @@ int handle_keyboard_event(SDL_Event* event) {
 			location = !location;
 		} else if(event->key.keysym.sym == KEY_BACKSPACE) {
 			simulate_key(SDLK_BACKSPACE, STATE_TYPED);
+#ifdef KEY_ARROW_UP
+		} else if(event->key.keysym.sym == KEY_ARROW_UP) {
+			simulate_key(SDLK_UP, STATE_TYPED);
+#endif
+#ifdef KEY_ARROW_DOWN
+		} else if(event->key.keysym.sym == KEY_ARROW_DOWN) {
+			simulate_key(SDLK_DOWN, STATE_TYPED);
+#endif
+#ifdef KEY_ARROW_LEFT
+		} else if(event->key.keysym.sym == KEY_ARROW_LEFT) {
+			simulate_key(SDLK_LEFT, STATE_TYPED);
+#endif
+#ifdef KEY_ARROW_RIGHT
+		} else if(event->key.keysym.sym == KEY_ARROW_RIGHT) {
+			simulate_key(SDLK_RIGHT, STATE_TYPED);
+#endif
 		} else if(event->key.keysym.sym == KEY_TOGGLE) {
 			toggled[selected_j][selected_i] = 1 - toggled[selected_j][selected_i];
 			if(toggled[selected_j][selected_i]) simulate_key(keys[shifted][selected_j][selected_i], STATE_DOWN);
@@ -323,7 +388,7 @@ int main() {
 	while(1) {
 		SDL_Event event;
 		while( SDL_PollEvent( &event ) ) {
-			if( event.type == SDL_QUIT ) { 
+			if( event.type == SDL_QUIT ) {
 				return 0;
 			} else {
 				handle_keyboard_event(&event);
