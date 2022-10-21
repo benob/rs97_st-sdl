@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Terminal
+Comment=SimpleTerminal for OpenDingux
+Exec=st.sh
+Icon=st
+Terminal=false
+Type=Application
+StartupNotify=true
+Categories=applications;
+X-OD-Manual=readme.rg99.txt

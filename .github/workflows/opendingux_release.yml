@@ -1,0 +1,153 @@
+name: OpenDingux Release Build
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  gcw0:
+    runs-on: ubuntu-22.04
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Create Build Environment
+      run: >
+        sudo apt-get update &&
+        sudo apt-get install -y curl cmake git squashfs-tools &&
+        curl -L https://github.com/OpenDingux/buildroot/releases/download/od-2022.09.22/opendingux-gcw0-toolchain.2022-09-22.tar.xz -o gcw0-toolchain.tar.xz &&
+        sudo mkdir -p /opt/gcw0-toolchain && sudo chown -R "${USER}:" /opt/gcw0-toolchain &&
+        tar -C /opt -xf gcw0-toolchain.tar.xz &&
+        cd /opt/gcw0-toolchain && ./relocate-sdk.sh
+
+    - name: Build
+      working-directory: ${{github.workspace}}
+      shell: bash
+      run: ./build.sh rg350
+      env:
+        TOOLCHAIN: /opt/gcw0-toolchain
+
+    - name: Upload-Package
+      if: ${{ !env.ACT }}
+      uses: actions/upload-artifact@v2
+      with:
+        name: st-rg350.opk.zip
+        path: build-rg350/st-rg350.opk
+
+    - name: Update Release
+      if: ${{ github.event_name == 'release' && !env.ACT }}
+      uses: svenstaro/upload-release-action@v2
+      with:
+        file: "build-rg350/st-rg350.opk"
+        overwrite: true
+
+  lepus:
+    runs-on: ubuntu-22.04
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Create Build Environment
+      run: >
+        sudo apt update &&
+        sudo apt install -y curl cmake git squashfs-tools &&
+        curl -L https://github.com/OpenDingux/buildroot/releases/download/od-2022.09.22/opendingux-lepus-toolchain.2022-09-22.tar.xz -o lepus-toolchain.tar.xz &&
+        sudo mkdir -p /opt/lepus-toolchain && sudo chown -R "${USER}:" /opt/lepus-toolchain &&
+        tar -C /opt -xf lepus-toolchain.tar.xz &&
+        cd /opt/lepus-toolchain && ./relocate-sdk.sh
+
+    - name: Build
+      working-directory: ${{github.workspace}}
+      shell: bash
+      run: ./build.sh lepus
+      env:
+        TOOLCHAIN: /opt/lepus-toolchain
+
+    - name: Upload-Package
+      if: ${{ !env.ACT }}
+      uses: actions/upload-artifact@v2
+      with:
+        name: st-lepus.opk.zip
+        path: build-lepus/st-lepus.opk
+
+    - name: Update Release
+      if: ${{ github.event_name == 'release' && !env.ACT }}
+      uses: svenstaro/upload-release-action@v2
+      with:
+        file: "build-lepus/st-lepus.opk"
+        overwrite: true
+
+  rg99:
+    runs-on: ubuntu-22.04
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Create Build Environment
+      run: >
+        sudo apt update &&
+        sudo apt install -y curl cmake git squashfs-tools &&
+        curl -L https://github.com/OpenDingux/buildroot/releases/download/od-2022.09.22/opendingux-rs90-toolchain.2022-09-22.tar.xz -o rs90-toolchain.tar.xz &&
+        sudo mkdir -p /opt/rs90-toolchain && sudo chown -R "${USER}:" /opt/rs90-toolchain &&
+        tar -C /opt -xf rs90-toolchain.tar.xz &&
+        cd /opt/rs90-toolchain && ./relocate-sdk.sh
+
+    - name: Build
+      working-directory: ${{github.workspace}}
+      shell: bash
+      run: ./build.sh rg99
+      env:
+        TOOLCHAIN: /opt/rs90-toolchain
+
+    - name: Upload-Package
+      if: ${{ !env.ACT }}
+      uses: actions/upload-artifact@v2
+      with:
+        name: st-rg99.opk.zip
+        path: build-rg99/st-lepus.opk
+
+    - name: Update Release
+      if: ${{ github.event_name == 'release' && !env.ACT }}
+      uses: svenstaro/upload-release-action@v2
+      with:
+        file: "build-lepus/st-lepus.opk"
+        overwrite: true
+
+  retrofw:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
+    - name: Create Build Environment
+      run: >
+        sudo apt-get update &&
+        sudo apt-get install -y curl cmake git squashfs-tools gettext &&
+        curl -L https://github.com/Poligraf/retrofw_buildroot_gcc11/releases/download/2.3.2/host.tar.gz -o retrofw-toolchain.tar.gz &&
+        sudo mkdir -p /opt/retrofw-toolchain && sudo chown -R "${USER}:" /opt/retrofw-toolchain &&
+        tar -C /opt/retrofw-toolchain --strip-components=1 -xf retrofw-toolchain.tar.gz &&
+        cd /opt/retrofw-toolchain && ./relocate-sdk.sh
+
+    - name: Build
+      working-directory: ${{github.workspace}}
+      shell: bash
+      run: ./build.sh retrofw
+      env:
+        TOOLCHAIN: /opt/retrofw-toolchain
+
+    - name: Upload-Package
+      if: ${{ !env.ACT }}
+      uses: actions/upload-artifact@v2
+      with:
+        name: st-retrofw.opk.zip
+        path: build-retrofw/st-retrofw.opk
+
+    - name: Update Release
+      if: ${{ github.event_name == 'release' && !env.ACT }}
+      uses: svenstaro/upload-release-action@v2
+      with:
+        file: "build-retrofw/st-retrofw.opk"
+        overwrite: true

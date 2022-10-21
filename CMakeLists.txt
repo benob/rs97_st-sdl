@@ -48,6 +48,10 @@ if(TARGET_PLATFORM STREQUAL "retrofw")
   include(CMake/retrofw_defs.cmake)
 elseif(TARGET_PLATFORM STREQUAL "rg350")
   include(CMake/rg350_defs.cmake)
+elseif(TARGET_PLATFORM STREQUAL "lepus")
+  include(CMake/lepus_defs.cmake)
+elseif(TARGET_PLATFORM STREQUAL "rg99")
+  include(CMake/rg99_defs.cmake)
 endif()
 
 foreach(

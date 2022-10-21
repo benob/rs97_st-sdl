@@ -13,7 +13,7 @@ if [[ $# -eq 0 ]]; then
 	exit 1
 fi
 
-if [[ $1 != rg350 ]] && [[ $1 != retrofw ]]; then
+if [[ $1 != rg350 ]] && [[ $1 != lepus ]] && [[ $1 != rg99 ]] && [[ $1 != retrofw ]]; then
 	echo "Error: invalid target"
 	usage
 	exit 1

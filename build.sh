@@ -4,7 +4,7 @@ set -euo pipefail
 
 usage() {
 	echo "Usage: build.sh [target]"
-	echo "	target: target platform: rg350 or retrofw"
+	echo "	target: target platform: rg350, lepus, rg99, or retrofw"
 }
 
 if [[ $# -ne 1 ]]; then
@@ -13,7 +13,7 @@ if [[ $# -ne 1 ]]; then
 	exit 1
 fi
 
-if [[ $1 != rg350 ]] && [[ $1 != retrofw ]]; then
+if [[ $1 != rg350 ]] && [[ $1 != lepus ]] && [[ $1 != rg99 ]] && [[ $1 != retrofw ]]; then
 	echo "Error: invalid target"
 	usage
 	exit 1
